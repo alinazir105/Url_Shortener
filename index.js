@@ -5,6 +5,7 @@ const app = express();
 const Url = require('./models/Url');
 const nanoid = require('nanoid').nanoid;
 const bodyParser = require('body-parser')
+const dns = require('dns')
 // Basic Configuration
 const port = process.env.PORT || 3000;
 
@@ -33,11 +34,18 @@ app.post('/api/shorturl', async(req, res)=>{
   const originalUrl = req.body.url
   const shortUrl = nanoid(6)
 
-  const url = new Url({originalUrl: originalUrl, shortUrl: shortUrl})
-
+  //this is the URL class in JS
+  const  hostname = new URL(originalUrl).hostname
+  dns.lookup(hostname, (err, address, family)=>{
+    if(err){
+      return res.json({error: 'Invalid Url'})
+    }
+  })
+  
   try{
+    //this is the Url model we have created
+    const url = new Url({originalUrl: originalUrl, shortUrl: shortUrl})
     const savedUrl = await url.save()
-
     res.json({original_url: savedUrl.originalUrl, 
       short_url: savedUrl.shortUrl});
   }
@@ -46,10 +54,11 @@ app.post('/api/shorturl', async(req, res)=>{
   }
 })
 
-app.get('/:shortUrl', async(req, res)=>{
+app.get('/api/shorturl/:shortUrl', async(req, res)=>{
 
   try{
     const foundUrl = await Url.findOne({shortUrl: req.params.shortUrl})
+    console.log(foundUrl)
     if(foundUrl){
       res.redirect(foundUrl.originalUrl)
     }
